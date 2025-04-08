@@ -1,0 +1,31 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.EdiMyDar" parent="Theme.Material3.Light.NoActionBar">
+        <!-- Customize your dark theme here. -->
+        <item name="materialButtonStyle">@style/CustomButtonStyle</item>
+        <item name="colorSecondary">@null</item>
+        <item name="checkboxStyle">@style/CustomCheckboxStyle</item> <!-- Apply custom checkbox style -->
+
+
+    </style>
+
+
+
+
+
+    <!-- Custom Button Style -->
+    <style name="CustomButtonStyle" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@null</item> <!-- Disable default background tint -->
+        <item name="backgroundColor">@null</item>
+
+    </style>
+
+    <style name="CustomCheckboxStyle" parent="Widget.Material3.CompoundButton.CheckBox">
+        <item name="android:button">@drawable/checkbox_custom</item> <!-- Use your custom drawable -->
+        <item name="buttonTint">@null</item> <!-- Disable default tint -->
+        <item name="android:padding">8dp</item> <!-- Add padding if needed -->
+    </style>
+
+
+
+</resources>

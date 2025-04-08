@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"  xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/My_Day"
+        android:icon="@drawable/myday"
+        android:title="My_Day"
+        app:iconTint="@null"/> <!-- This prevents Android from changing the icon color -->
+    />
+    <item
+        android:id="@+id/Tasks"
+        android:icon="@drawable/tasks"
+        android:title="Tasks"
+        app:iconTint="@null"/>
+    <item
+        android:id="@+id/Ai_Help"
+        android:icon="@drawable/robot"
+        android:title="Ai_Help"
+        app:iconTint="@null"/>
+</menu>

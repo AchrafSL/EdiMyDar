@@ -1,0 +1,41 @@
+<resources>
+    <string name="app_name">EdiMyDar</string>
+    <string name="human_icon_desc">Human img</string>
+    <string name="phone_icon_desc">phone img</string>
+    <string name="HomePage_title">Get things Done with 3DiMyDar</string>
+    <string name="HomePage_button">Get Started</string>
+    <string name="HomePage_circle_desc">quarter circle</string>
+    <string name="Register_Title_H2">Let\'s Help you meet your tasks</string>
+    <string name="Register_Title_H1">Welcome onboard!</string>
+    <string name="Register_submit_btn">Register</string>
+    <string name="Register_question">Already have an account? <font color='#B83F0B'>Sign In</font></string>
+    <string name="Login_title_h1">WELCOME BACK !</string>
+    <string name="Login_forgot_pwd"><font color='#B83F0B'> Forgot password ?</font></string>
+    <string name="Login_btn">Login</string>
+    <string name="Login_buttom_msg">Don\'t have an account? <font color='#B83F0B'>Sign Up</font></string>
+    <string name="ForgotPWD_title_h1">Forgot password ?</string>
+    <string name="ForgotPWD_title_h2">Enter your email below to reset your password</string>
+    <string name="submitTXT">Submit</string>
+    <string name="title_activity_login">LoginActivity</string>
+    <string name="prompt_email">Email</string>
+    <string name="prompt_password">Password</string>
+    <string name="action_sign_in">Sign in or register</string>
+    <string name="action_sign_in_short">Sign in</string>
+    <string name="welcome">"Welcome !"</string>
+    <string name="invalid_username">Not a valid username</string>
+    <string name="invalid_password">Password must be >5 characters</string>
+    <string name="login_failed">"Login failed"</string>
+    <string name="FrogotPWD_REQUEST_txt1">If the account exist, we will email you instructions to reset the password</string>
+    <string name="FrogotPWD_REQUEST_txt2">if the email doesn\'t show up soon, check your spam folder. we sent it from 3DiMyDar@gmail.com</string>
+    <string name="ForgotPWD_REQUEST_title">Password reset requested</string>
+    <string name="ForgotPWD_R_SUCC_txt0">Password reset request processed successfully.</string>
+    <string name="ForgotPWD_R_SUCC_txt1">Password should be at least 8 characters long with at least one numeric, one uppercase and one lowercase character.</string>
+    <string name="ForgotPWD_failure">We encountered an error while processing your password reset request. Please ensure that you have entered the correct information and try again. If the issue persists, please contact our support team for further assistance.</string>
+    <string name="ReturnToLogin">Return to login</string>
+    <string name="title_activity_home_page_main">HomePage_MAIN</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_notifications">Notifications</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+</resources>

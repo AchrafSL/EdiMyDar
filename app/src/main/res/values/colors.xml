@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="grayKhfif">#EEEEEE</color>
+    <color name="limouniKhfif">#FAA885</color>
+    <color name="limouni9ase7">#B83F0B</color>
+    <color name="navBarColor">#2A2D34</color>
+
+
+    <color name="light_pink">#FFB7B7</color> <!-- Light pink for profile picture background -->
+    <color name="orange">#D4AF37</color> <!-- Orange for logout button background -->
+    <color name="red">#FF5733</color> <!-- Red for notifications status -->
+    <color name="lomouniHarban">#FF5722</color>
+
+        <color name="light_gray">#F5F5F5</color> <!-- Light gray background -->
+        <color name="purple_border">#FF00FF</color> <!-- Purple border -->
+        <color name="orange_icon">#FFA500</color> <!-- Orange icon color -->
+
+</resources>
