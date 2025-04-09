@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     id("com.google.gms.google-services")
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
+
 
 }
 
@@ -25,6 +27,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+
         }
     }
     compileOptions {
@@ -35,7 +38,12 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        buildConfig = true // Enables BuildConfig generation
     }
+
+
+
+
 }
 
 dependencies {
@@ -62,6 +70,12 @@ dependencies {
     implementation(libs.google.firebase.auth)
     implementation(libs.google.firebase.firestore)
     implementation(libs.google.firebase.analytics)
+
+    //Ok Http library to send http requests :
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+
+
 
 
 

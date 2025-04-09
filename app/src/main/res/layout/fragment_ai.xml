@@ -10,7 +10,7 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="561dp">
 
     </androidx.recyclerview.widget.RecyclerView>
 
@@ -27,6 +27,7 @@
         android:layout_width="match_parent"
         android:layout_height="80dp"
         android:layout_gravity="bottom"
+        android:layout_marginBottom="82dp"
         android:padding="8dp">
 
         <EditText
