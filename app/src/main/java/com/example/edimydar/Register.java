@@ -114,7 +114,7 @@ public class Register extends AppCompatActivity {
                             userInfo.put("fullName", fullName);
                             userInfo.put("email", email);
                             userInfo.put("createdAt", Timestamp.now());
-                            userInfo.put("Notifications",true);
+                            userInfo.put("Notifications",false);
 
                             db.collection("users").document(userId) // Use UID as document ID
                                     .set(userInfo)

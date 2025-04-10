@@ -2,6 +2,8 @@ package com.example.edimydar;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
@@ -13,6 +15,8 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -58,7 +62,52 @@ public class UsrProfileActivity extends AppCompatActivity {
 
         // Handle Logout Button Click
         logoutButton.setOnClickListener(v -> logout());
+
+
+        // Add a listener to the notifications switch
+        notificationsCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            FirebaseUser currentUser = mAuth.getCurrentUser();
+            if (currentUser != null) {
+                String userId = currentUser.getUid();
+
+                // Check and request POST_NOTIFICATIONS permission on Android 13+ (API level 33)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
+                            != PackageManager.PERMISSION_GRANTED) {
+                        // Request the POST_NOTIFICATIONS permission
+                        ActivityCompat.requestPermissions(
+                                this,
+                                new String[]{android.Manifest.permission.POST_NOTIFICATIONS},
+                                101 // Request code for handling permissions
+                        );
+
+                        // Reset the switch until the permission is granted
+                        notificationsCheckBox.setChecked(false);
+                        Toast.makeText(this, "Notification permission is required", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                }
+
+                // Update the "Notifications" field in Firestore
+                DocumentReference userRef = db.collection("users").document(userId);
+                userRef.update("Notifications", isChecked)
+                        .addOnSuccessListener(aVoid -> {
+                            Toast.makeText(this, "Notifications " + (isChecked ? "enabled" : "disabled"), Toast.LENGTH_SHORT).show();
+                        })
+                        .addOnFailureListener(e -> {
+                            Toast.makeText(this, "Failed to update notification preference: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        });
+            } else {
+                Toast.makeText(this, "No user is signed in", Toast.LENGTH_SHORT).show();
+            }
+        });
+
     }
+
+
+
+
+
 
     // Load user data from Firestore
     private void loadUserData() {
@@ -200,5 +249,53 @@ public class UsrProfileActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // Handle the result of the permission request
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == 101) { // Check the request code
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission granted; proceed with enabling notifications
+                boolean isChecked = notificationsCheckBox.isChecked();
+                FirebaseUser currentUser = mAuth.getCurrentUser();
+                if (currentUser != null) {
+                    String userId = currentUser.getUid();
+
+                    // Update the "Notifications" field in Firestore
+                    DocumentReference userRef = db.collection("users").document(userId);
+                    userRef.update("Notifications", isChecked)
+                            .addOnSuccessListener(aVoid -> {
+                                Toast.makeText(this, "Notifications " + (isChecked ? "enabled" : "disabled"), Toast.LENGTH_SHORT).show();
+                            })
+                            .addOnFailureListener(e -> {
+                                Toast.makeText(this, "Failed to update notification preference: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            });
+                }
+            } else {
+                // Permission denied; reset the switch and inform the user
+                notificationsCheckBox.setChecked(false);
+                Toast.makeText(this, "Notification permission denied", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 }

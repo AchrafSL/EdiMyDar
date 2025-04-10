@@ -1,10 +1,19 @@
 package com.example.edimydar;
 
+import android.annotation.SuppressLint;
+import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.TimePickerDialog;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 
+import androidx.core.app.NotificationCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -21,9 +30,11 @@ import android.widget.Toast;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -56,6 +67,9 @@ public class TaskFragment extends Fragment implements normalTaskRecycler_V_Adapt
             showAddTaskDialog();
         });
 
+        // Check for scheduling is enabled ?
+        checkAlarmPermissionStatus();
+
 
         // Handling RecyclerView (Tasks Elements)
         recyclerView = view.findViewById(R.id.RecyclerView1);
@@ -70,7 +84,7 @@ public class TaskFragment extends Fragment implements normalTaskRecycler_V_Adapt
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
-        greeting = view.findViewById(R.id.textView4);
+        greeting = view.findViewById(R.id.greeting);
         nbrOfTasks = view.findViewById(R.id.nbrOfTasks); // Reference the TextView
 
         fetch_tasks_userName_data(); // Fetch tasks for this user
@@ -162,7 +176,7 @@ public class TaskFragment extends Fragment implements normalTaskRecycler_V_Adapt
         NormalTaskList.add(task);
     }
 
-    private void addNormalTaskToFirestore(String title,String dueDate,String dueTime) {
+    private void addNormalTaskToFirestore(String title, String dueDate, String dueTime) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
             Log.e("AuthError", "No user is signed in while adding a task");
@@ -172,43 +186,56 @@ public class TaskFragment extends Fragment implements normalTaskRecycler_V_Adapt
 
         String userId = currentUser.getUid();
 
-        // Create a new task object
-        Map<String, Object> task = new HashMap<>();
-        task.put("userId", userId);
-        task.put("title", title);
-        task.put("done", false);
-        task.put("dueDate",dueDate);
-        task.put("dueTime",dueTime);
+        // Check if notifications are enabled for the user
+        DocumentReference userRef = db.collection("users").document(userId);
+        userRef.get().addOnSuccessListener(documentSnapshot -> {
+            Boolean notificationsEnabled = documentSnapshot.getBoolean("Notifications");
+            if (notificationsEnabled == null || !notificationsEnabled) {
+                Log.d("NotificationPref", "Notifications are disabled for user: " + userId);
+                Toast.makeText(getContext(), "Notifications are disabled for this user", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
-        // Add the task to Firestore
-        db.collection("NormalTasks")
-                .add(task)
-                .addOnSuccessListener(documentReference -> {
-                    String documentId = documentReference.getId();
-                    Log.d("FirestoreSuccess", "Task added successfully. Firestore auto-generated ID: " + documentId);
-                    Toast.makeText(getContext(), "Task added successfully!", Toast.LENGTH_SHORT).show();
+            // Create a new task object
+            Map<String, Object> task = new HashMap<>();
+            task.put("userId", userId);
+            task.put("title", title);
+            task.put("done", false);
+            task.put("dueDate", dueDate);
+            task.put("dueTime", dueTime);
 
-                    InsertData(title,false,dueDate,dueTime);
-                    // Optionally, update the local list and notify the adapter
+            // Add the task to Firestore
+            db.collection("NormalTasks")
+                    .add(task)
+                    .addOnSuccessListener(documentReference -> {
+                        String taskId = documentReference.getId();
+                        Log.d("FirestoreSuccess", "Task added successfully. Firestore auto-generated ID: " + taskId);
+                        Toast.makeText(getContext(), "Task added successfully!", Toast.LENGTH_SHORT).show();
 
-                    normnalTaskAdapter.notifyItemInserted(NormalTaskList.size() - 1); // Notify the adapter
+                        Date dueDateTime = parseDueDateTime(dueDate, dueTime);
+                        if (dueDateTime != null) {
+                            scheduleNotification(taskId, title, dueDateTime);
+                        }
 
-                    // Update the task count
-                    updateTaskCount();
-                })
-                .addOnFailureListener(e -> {
-                    Log.e("FirestoreError", "Error adding task: " + e.getMessage());
-                    Toast.makeText(getContext(), "Failed to add task", Toast.LENGTH_SHORT).show();
-                });
+                        InsertData(title, false, dueDate, dueTime);
+                        normnalTaskAdapter.notifyItemInserted(NormalTaskList.size() - 1); // Notify the adapter
+                        updateTaskCount();
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e("FirestoreError", "Error adding task: " + e.getMessage());
+                        Toast.makeText(getContext(), "Failed to add task", Toast.LENGTH_SHORT).show();
+                    });
+        }).addOnFailureListener(e -> {
+            Log.e("FirestoreError", "Error fetching notification preference: " + e.getMessage());
+            Toast.makeText(getContext(), "Failed to load notification preference", Toast.LENGTH_SHORT).show();
+        });
     }
 
 
 
 
 
-    public void addDailyTaskToFireBase(String title,String dueTime)
-    {
-        //When the Date is Today
+    private void addDailyTaskToFireBase(String title, String dueTime) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
             Log.e("AuthError", "No user is signed in while adding a task");
@@ -218,26 +245,50 @@ public class TaskFragment extends Fragment implements normalTaskRecycler_V_Adapt
 
         String userId = currentUser.getUid();
 
-        // Create a new task object
-        Map<String, Object> task = new HashMap<>();
-        task.put("userId", userId);
-        task.put("title", title);
-        task.put("done", false);
-        if(!dueTime.isEmpty())
-            task.put("dueTime",dueTime);
+        // Get today's date in the format "dd/MM/yyyy"
+        String todayDate = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(new Date());
 
-        // Add the task to Firestore
-        db.collection("dailyTasks")
-                .add(task)
-                .addOnSuccessListener(documentReference -> {
-                    String documentId = documentReference.getId();
-                    Log.d("FirestoreSuccess", "Task added successfully. Firestore auto-generated ID: " + documentId);
-                    Toast.makeText(getContext(), "Task added successfully!", Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e -> {
-                    Log.e("FirestoreError", "Error adding task: " + e.getMessage());
-                    Toast.makeText(getContext(), "Failed to add task", Toast.LENGTH_SHORT).show();
-                });
+        // Check if notifications are enabled for the user
+        DocumentReference userRef = db.collection("users").document(userId);
+        userRef.get().addOnSuccessListener(documentSnapshot -> {
+            Boolean notificationsEnabled = documentSnapshot.getBoolean("Notifications");
+            if (notificationsEnabled == null || !notificationsEnabled) {
+                Log.d("NotificationPref", "Notifications are disabled for user: " + userId);
+                Toast.makeText(getContext(), "Notifications are disabled for this user", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Create a new task object
+            Map<String, Object> task = new HashMap<>();
+            task.put("userId", userId);
+            task.put("title", title);
+            task.put("done", false);
+            task.put("dueDate", todayDate); // Add today's date
+            if (!dueTime.isEmpty()) {
+                task.put("dueTime", dueTime); // Add the due time
+            }
+
+            // Add the task to Firestore
+            db.collection("dailyTasks")
+                    .add(task)
+                    .addOnSuccessListener(documentReference -> {
+                        String taskId = documentReference.getId();
+                        Log.d("FirestoreSuccess", "Task added successfully. Firestore auto-generated ID: " + taskId);
+                        Toast.makeText(getContext(), "Task added successfully!", Toast.LENGTH_SHORT).show();
+
+                        Date dueDateTime = parseDueDateTime(todayDate, dueTime);
+                        if (dueDateTime != null) {
+                            scheduleNotification(taskId, title, dueDateTime);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e("FirestoreError", "Error adding task: " + e.getMessage());
+                        Toast.makeText(getContext(), "Failed to add task", Toast.LENGTH_SHORT).show();
+                    });
+        }).addOnFailureListener(e -> {
+            Log.e("FirestoreError", "Error fetching notification preference: " + e.getMessage());
+            Toast.makeText(getContext(), "Failed to load notification preference", Toast.LENGTH_SHORT).show();
+        });
     }
 
 
@@ -389,4 +440,153 @@ public class TaskFragment extends Fragment implements normalTaskRecycler_V_Adapt
     public void onTaskDeleted() {
         updateTaskCount();
     }
+
+
+
+
+
+
+
+
+
+
+    // handel notification :
+    @SuppressLint("ScheduleExactAlarm")
+    private void sendNotification(String taskId, String title, String txt, Date dueDateTime) {
+        // Create a notification channel (required for Android Oreo and above)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "Task Notifications";
+            String description = "Notifications for task reminders";
+            int importance = NotificationManager.IMPORTANCE_HIGH;
+            NotificationChannel channel = new NotificationChannel("task_channel", name, importance);
+            channel.setDescription(description);
+
+            NotificationManager notificationManager = (NotificationManager) requireContext().getSystemService(Context.NOTIFICATION_SERVICE);
+            notificationManager.createNotificationChannel(channel);
+        }
+
+        // Build the notification
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(requireContext(), "task_channel")
+                .setSmallIcon(R.drawable.ic_notification_icon) // Replace with your icon
+                .setContentTitle(title)
+                .setContentText(txt)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true);
+
+        // Schedule the notification using AlarmManager
+        Intent intent = new Intent(requireContext(), NotificationReceiver.class);
+        intent.putExtra("task_id", taskId);
+        intent.putExtra("task_title", title);
+        intent.putExtra("task_text", txt);
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                requireContext(),
+                taskId.hashCode(), // Unique ID for the task
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager != null && dueDateTime != null) {
+            long triggerTimeMillis = dueDateTime.getTime();
+            alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTimeMillis, pendingIntent);
+            Log.d("NotificationScheduler", "Notification scheduled for task: " + title);
+        }
+    }
+
+
+    //When the user adds a task, ensure that the due date and time are properly parsed into a Date object.
+    private Date parseDueDateTime(String dueDate, String dueTime) {
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
+            return sdf.parse(dueDate + " " + dueTime);
+        } catch (Exception e) {
+            Log.e("SchedulerError", "Failed to parse due date/time: " + e.getMessage());
+            return null;
+        }
+    }
+
+
+
+
+
+    //Notification scheduling:
+    private void scheduleNotification(String taskId, String taskTitle, Date dueDateTime) {
+        if (dueDateTime == null || dueDateTime.before(new Date())) {
+            Log.w("NotificationScheduler", "Task is overdue. Skipping notification scheduling.");
+            return;
+        }
+
+        Context context = requireContext();
+
+        // Check if exact alarms are allowed
+        if (!canScheduleExactAlarms(context)) {
+            Toast.makeText(context, "Exact alarms are not allowed. Please enable them in settings.", Toast.LENGTH_LONG).show();
+            requestExactAlarmPermission(context);
+            return;
+        }
+
+        Intent intent = new Intent(context, NotificationReceiver.class);
+        intent.putExtra("task_id", taskId);
+        intent.putExtra("task_title", taskTitle);
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                context,
+                taskId.hashCode(), // Unique ID for the task
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+
+        if (alarmManager != null && dueDateTime != null) {
+            try {
+                long triggerTimeMillis = dueDateTime.getTime();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTimeMillis, pendingIntent);
+                } else {
+                    alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTimeMillis, pendingIntent);
+                }
+                Log.d("NotificationScheduler", "Notification scheduled for task: " + taskTitle);
+            } catch (SecurityException e) {
+                Log.e("NotificationScheduler", "Failed to schedule notification: " + e.getMessage());
+                Toast.makeText(context, "Unable to schedule notifications. Please grant exact alarm permissions.", Toast.LENGTH_LONG).show();
+                requestExactAlarmPermission(context);
+            }
+        }
+    }
+
+
+
+
+
+
+
+    // Handel Scheduling permission :
+
+    private boolean canScheduleExactAlarms(Context context) {
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            return alarmManager.canScheduleExactAlarms();
+        }
+        // For devices running Android 11 or lower, exact alarms are always allowed
+        return true;
+    }
+
+    private void requestExactAlarmPermission(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Intent intent = new Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+            intent.setData(android.net.Uri.parse("package:" + context.getPackageName()));
+            startActivity(intent);
+        }
+    }
+
+
+    private void checkAlarmPermissionStatus() {
+        if (!canScheduleExactAlarms(requireContext())) {
+            Toast.makeText(requireContext(), "Exact alarms are disabled. Notifications may not work as expected.", Toast.LENGTH_LONG).show();
+            requestExactAlarmPermission(requireContext());
+        }
+    }
+
 }

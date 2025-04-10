@@ -63,7 +63,7 @@
         <!-- Second TextView with Shadow -->
 
         <TextView
-            android:id="@+id/textView4"
+            android:id="@+id/greeting"
             android:layout_width="376dp"
             android:layout_height="88dp"
             android:layout_marginStart="30dp"

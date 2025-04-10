@@ -1,8 +1,19 @@
 package com.example.edimydar;
 
+import android.Manifest;
 import android.app.AlertDialog;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
+
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -116,8 +127,16 @@ public class myDayFragment extends Fragment {
         dailyTaskAdaptert = new TaskRecylerViewAdapter(dailyTaskList);
         recyclerView.setAdapter(dailyTaskAdaptert);
 
+
+
         return view;
     }
+
+
+
+
+
+
 
     public void InsertData(String title, boolean checked) {
         DailyTask task = new DailyTask(title, checked);
@@ -282,4 +301,16 @@ public class myDayFragment extends Fragment {
         startActivity(i);
         Log.d("NavigationDebug", "Navigating to User Profile page");
     }
+
+
+
+
+
+
+
+
+
+
+
+
 }
