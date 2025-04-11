@@ -64,16 +64,16 @@ public class UsrProfileActivity extends AppCompatActivity {
 
         imgPickLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult() ,
                 result->{
-            if(result.getResultCode() == RESULT_OK)
-            {
-                Intent data = result.getData();
-                if(data != null && data.getData() != null)
-                {
-                    selectedimgUri = data.getData();
-                    Glide.with(this).load(selectedimgUri).apply(RequestOptions.circleCropTransform())
-                            .into(profilePic);
-                }
-            }
+                    if(result.getResultCode() == RESULT_OK)
+                    {
+                        Intent data = result.getData();
+                        if(data != null && data.getData() != null)
+                        {
+                            selectedimgUri = data.getData();
+                            Glide.with(this).load(selectedimgUri).apply(RequestOptions.circleCropTransform())
+                                    .into(profilePic);
+                        }
+                    }
                 });
 
 
@@ -360,3 +360,4 @@ public class UsrProfileActivity extends AppCompatActivity {
         }
     }
 }
+
