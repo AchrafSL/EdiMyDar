@@ -3,21 +3,29 @@ package com.example.edimydar;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
+import com.github.dhaval2404.imagepicker.ImagePicker;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthCredential;
@@ -28,6 +36,9 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import kotlin.Unit;
+import kotlin.jvm.functions.Function1;
+
 public class UsrProfileActivity extends AppCompatActivity {
 
     private FirebaseAuth mAuth;
@@ -37,11 +48,61 @@ public class UsrProfileActivity extends AppCompatActivity {
     private TextView logoutButton;
     private Button updateProfileButton;
 
+    private ActivityResultLauncher<Intent> imgPickLauncher;
+    private Uri selectedimgUri;
+
+    ImageView profilePic;
+
+
+
     @SuppressLint("WrongViewCast")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_usr_profile);
+
+
+        imgPickLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult() ,
+                result->{
+            if(result.getResultCode() == RESULT_OK)
+            {
+                Intent data = result.getData();
+                if(data != null && data.getData() != null)
+                {
+                    selectedimgUri = data.getData();
+                    Glide.with(this).load(selectedimgUri).apply(RequestOptions.circleCropTransform())
+                            .into(profilePic);
+                }
+            }
+                });
+
+
+        profilePic = findViewById(R.id.profilePicture);
+        profilePic.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ImagePicker.with(UsrProfileActivity.this).cropSquare().compress(512).maxResultSize(512,512).createIntent(new Function1<Intent, Unit>() {
+                    @Override
+                    public Unit invoke(Intent intent) {
+                        imgPickLauncher.launch(intent);
+                        return null;
+                    }
+                });
+            }
+        });
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         // Initialize Firebase components
         mAuth = FirebaseAuth.getInstance();
