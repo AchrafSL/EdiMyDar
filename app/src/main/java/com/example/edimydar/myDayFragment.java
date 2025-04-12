@@ -7,6 +7,7 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.Bundle;
 
@@ -30,6 +31,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
@@ -54,6 +57,7 @@ public class myDayFragment extends Fragment {
     List<DailyTask> dailyTaskList = new ArrayList<>();
     TaskRecylerViewAdapter dailyTaskAdaptert;
 
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -67,6 +71,9 @@ public class myDayFragment extends Fragment {
         // Fetch the tasks' data
         fetchUserTasks(); // Fetch tasks for this user
 
+        //Load pfp:
+        loadImageFromFirebase();
+
         // On click listener on userPage Block
         LinearLayout GoUsrPageBlock = view.findViewById(R.id.GoUsrPageBlock);
         GoUsrPageBlock.setOnClickListener(v -> GoUsrPage());
@@ -75,6 +82,7 @@ public class myDayFragment extends Fragment {
         TextView usernameTextView = view.findViewById(R.id.welcomeText);
         profileImageView = view.findViewById(R.id.profileImage);
         greetingText = view.findViewById(R.id.greetingText);
+
 
         // Set the greeting based on the current time
         setGreetingBasedOnTime();
@@ -300,6 +308,47 @@ public class myDayFragment extends Fragment {
         Intent i = new Intent(getActivity(), UsrProfileActivity.class);
         startActivity(i);
         Log.d("NavigationDebug", "Navigating to User Profile page");
+    }
+
+
+
+    private void loadImageFromFirebase() {
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser != null) {
+            String userId = currentUser.getUid();
+
+            // Reference to the user's document in Firestore
+            DocumentReference userRef = db.collection("users").document(userId);
+
+            // Fetch the user's data
+            userRef.get().addOnCompleteListener(task -> {
+                if (task.isSuccessful()) {
+                    if (task.getResult().exists()) {
+                        String base64Image = task.getResult().getString("profilePicture");
+
+                        if (base64Image != null && !base64Image.isEmpty()) {
+                            // Decode the Base64 string to a Bitmap
+                            Bitmap bitmap = ImageUtils.base64ToBitmap(base64Image);
+
+                            // Display the image in the ImageView
+                            Glide.with(this)
+                                    .load(bitmap)
+                                    .apply(RequestOptions.circleCropTransform())
+                                    .into(profileImageView);
+                        } else {
+                            // Set a default placeholder
+                            profileImageView.setImageResource(R.drawable.usrdefault);
+                        }
+                    } else {
+                        Toast.makeText(getContext(), "User data not found", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Toast.makeText(getContext(), "Failed to load user data: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            });
+        } else {
+            Toast.makeText(getContext(), "No user is signed in", Toast.LENGTH_SHORT).show();
+        }
     }
 
 

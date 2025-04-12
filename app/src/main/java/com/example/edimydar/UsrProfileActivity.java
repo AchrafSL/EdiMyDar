@@ -3,9 +3,11 @@ package com.example.edimydar;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -35,6 +37,8 @@ import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.io.IOException;
 
 import kotlin.Unit;
 import kotlin.jvm.functions.Function1;
@@ -72,6 +76,7 @@ public class UsrProfileActivity extends AppCompatActivity {
                             selectedimgUri = data.getData();
                             Glide.with(this).load(selectedimgUri).apply(RequestOptions.circleCropTransform())
                                     .into(profilePic);
+                            saveImageToFirebase(selectedimgUri);
                         }
                     }
                 });
@@ -191,6 +196,8 @@ public class UsrProfileActivity extends AppCompatActivity {
                         fullNameEditText.setText(fullName);
                         emailEditText.setText(email);
                         notificationsCheckBox.setChecked(notificationsEnabled != null && notificationsEnabled); // Set CheckBox state
+                        loadImageFromFirebase();
+
                         Toast.makeText(this, "Data loaded successfully", Toast.LENGTH_SHORT).show();
                     } else {
                         Toast.makeText(this, "User data not found", Toast.LENGTH_SHORT).show();
@@ -359,5 +366,96 @@ public class UsrProfileActivity extends AppCompatActivity {
             }
         }
     }
+
+
+
+
+
+
+
+
+
+    // functions For Img treatment :
+
+    private void saveImageToFirebase(Uri imageUri) {
+        try {
+            // Convert URI to Bitmap
+            Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri);
+
+            // Convert Bitmap to Base64 string
+            String base64Image = ImageUtils.bitmapToBase64(bitmap);
+
+            // Save the Base64 string in Firestore
+            FirebaseUser currentUser = mAuth.getCurrentUser();
+            if (currentUser != null) {
+                String userId = currentUser.getUid();
+
+                // Update Firestore with the Base64 image string
+                DocumentReference userRef = db.collection("users").document(userId);
+                userRef.update("profilePicture", base64Image)
+                        .addOnSuccessListener(aVoid -> {
+                            Toast.makeText(this, "Profile picture updated successfully", Toast.LENGTH_SHORT).show();
+                        })
+                        .addOnFailureListener(e -> {
+                            Toast.makeText(this, "Failed to update profile picture: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        });
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Failed to process image", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
+    private void loadImageFromFirebase() {
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser != null) {
+            String userId = currentUser.getUid();
+
+            // Reference to the user's document in Firestore
+            DocumentReference userRef = db.collection("users").document(userId);
+
+            // Fetch the user's data
+            userRef.get().addOnCompleteListener(task -> {
+                if (task.isSuccessful()) {
+                    if (task.getResult().exists()) {
+                        String base64Image = task.getResult().getString("profilePicture");
+
+                        if (base64Image != null && !base64Image.isEmpty()) {
+                            // Decode the Base64 string to a Bitmap
+                            Bitmap bitmap = ImageUtils.base64ToBitmap(base64Image);
+
+                            // Display the image in the ImageView
+                            Glide.with(this)
+                                    .load(bitmap)
+                                    .apply(RequestOptions.circleCropTransform())
+                                    .into(profilePic);
+                        } else {
+                            // Set a default placeholder
+                            profilePic.setImageResource(R.drawable.usrdefault);
+                        }
+                    } else {
+                        Toast.makeText(this, "User data not found", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Toast.makeText(this, "Failed to load user data: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            });
+        } else {
+            Toast.makeText(this, "No user is signed in", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
